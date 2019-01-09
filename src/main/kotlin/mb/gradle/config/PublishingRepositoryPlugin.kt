@@ -6,7 +6,7 @@ import org.gradle.api.publish.PublishingExtension
 import org.gradle.kotlin.dsl.configure
 import java.net.URI
 
-class PublishingPlugin : Plugin<Project> {
+class PublishingRepositoryPlugin : Plugin<Project> {
   override fun apply(project: Project) {
     project.pluginManager.withPlugin("publishing") {
       project.configure<PublishingExtension> {

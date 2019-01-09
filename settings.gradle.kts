@@ -1,4 +1,4 @@
-rootProject.name = "gradle-config"
+rootProject.name = "gradle.config"
 
 pluginManagement {
   repositories {

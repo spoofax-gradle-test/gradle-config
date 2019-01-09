@@ -16,6 +16,7 @@ repositories {
 
 dependencies {
   compile(kotlin("stdlib"))
+  compile("org.metaborg:gitonium:0.3.0")
 }
 
 kotlinDslPluginOptions {
@@ -27,9 +28,21 @@ tasks.withType<KotlinCompile>().all {
 
 gradlePlugin {
   plugins {
-    create("metaborg-publishing") {
-      id = "org.metaborg.gradle.config.publishing"
-      implementationClass = "mb.gradle.config.PublishingPlugin"
+    create("publishing-repository") {
+      id = "org.metaborg.gradle.config.publishing-repository"
+      implementationClass = "mb.gradle.config.PublishingRepositoryPlugin"
+    }
+    create("composite-build-tasks") {
+      id = "org.metaborg.gradle.config.composite-build-tasks"
+      implementationClass = "mb.gradle.config.CompositeBuildTasksPlugin"
+    }
+    create("group-config") {
+      id = "org.metaborg.gradle.config.group-config"
+      implementationClass = "mb.gradle.config.GroupConfigPlugin"
+    }
+    create("version-config") {
+      id = "org.metaborg.gradle.config.version-config"
+      implementationClass = "mb.gradle.config.VersionConfigPlugin"
     }
   }
 }
