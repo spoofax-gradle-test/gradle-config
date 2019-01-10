@@ -58,9 +58,9 @@ class MetaborgConfigPlugin : Plugin<Project> {
         createCompositeBuildTask(project, "publishAll", "publish", "Publishes all publications produced by all projects in the composite build.")
       }
 
-      extensions.add("metaborg-config", MetaborgConfigExtension(project))
+      extensions.add("metaborg-config", MetaborgConfigExtension(this))
       subprojects {
-        extensions.add("metaborg-config", MetaborgConfigExtension(project))
+        extensions.add("metaborg-config", MetaborgConfigExtension(this))
       }
     }
   }
