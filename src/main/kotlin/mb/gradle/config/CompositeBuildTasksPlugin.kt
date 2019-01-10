@@ -7,21 +7,22 @@ import org.gradle.kotlin.dsl.*
 class CompositeBuildTasksPlugin : Plugin<Project> {
   override fun apply(project: Project) {
     project.tasks {
-      createCompositeBuildTask(project, "cleanAll", "clean")
-      createCompositeBuildTask(project, "checkAll", "check")
-      createCompositeBuildTask(project, "assembleAll", "assemble")
-      createCompositeBuildTask(project, "buildAll", "build")
-      createCompositeBuildTask(project, "publishAll", "publish")
+      createCompositeBuildTask(project, "cleanAll", "clean", "Deletes the build directory for all projects in the composite build.")
+      createCompositeBuildTask(project, "checkAll", "check", "Runs all checks for all projects in the composite build.")
+      createCompositeBuildTask(project, "assembleAll", "assemble", "Assembles the outputs for all projects in the composite build.")
+      createCompositeBuildTask(project, "buildAll", "build", "Assembles and tests all projects in the composite build.")
+      createCompositeBuildTask(project, "publishAll", "publish", "Publishes all publications produced by all projects in the composite build.")
     }
   }
 
-  private fun TaskContainerScope.createCompositeBuildTask(project: Project, allName: String, name: String) {
+  private fun TaskContainerScope.createCompositeBuildTask(project: Project, allName: String, name: String, description: String) {
     register(allName) {
-      group = "composite build"
+      this.group = "composite build"
+      this.description = description
       if(project.subprojects.isEmpty()) {
-        dependsOn(name)
+        this.dependsOn(name)
       } else {
-        dependsOn(project.subprojects.map { it.tasks[name] })
+        this.dependsOn(project.subprojects.map { it.tasks[name] })
       }
     }
   }
