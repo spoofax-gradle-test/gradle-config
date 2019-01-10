@@ -42,6 +42,10 @@ open class MetaborgConfigExtension(private val project: Project) {
 }
 
 class MetaborgConfigPlugin : Plugin<Project> {
+  companion object {
+    private const val extensionName = "metaborgConfig"
+  }
+
   override fun apply(project: Project) {
     project.run {
       configureGroup()
@@ -58,9 +62,9 @@ class MetaborgConfigPlugin : Plugin<Project> {
         createCompositeBuildTask(project, "publishAll", "publish", "Publishes all publications produced by all projects in the composite build.")
       }
 
-      extensions.add("metaborg-config", MetaborgConfigExtension(this))
+      extensions.add(extensionName, MetaborgConfigExtension(this))
       subprojects {
-        extensions.add("metaborg-config", MetaborgConfigExtension(this))
+        extensions.add(extensionName, MetaborgConfigExtension(this))
       }
     }
   }
