@@ -8,10 +8,15 @@ import org.gradle.kotlin.dsl.*
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.net.URI
 
+@Suppress("unused")
 open class MetaborgConfigExtension(private val project: Project) {
   fun configureSubProject() {
     project.configureGroup()
+    project.configureRepositories()
     project.configurePublishingRepositories()
+
+    // Only root project needs to configure version, as gitonium will set versions for subprojects automatically.
+    // Only root project needs composite build tasks, as these tasks depend on tasks for subprojects.
   }
 
 
@@ -35,12 +40,15 @@ open class MetaborgConfigExtension(private val project: Project) {
     project.configureJavaPublication("KotlinLibrary")
   }
 
+  // TODO: kotlin application
+
   fun configureKotlinGradlePlugin() {
     project.pluginManager.apply("kotlin-dsl")
     project.pluginManager.apply("maven-publish")
   }
 }
 
+@Suppress("unused")
 class MetaborgConfigPlugin : Plugin<Project> {
   companion object {
     private const val extensionName = "metaborgConfig"
@@ -49,11 +57,9 @@ class MetaborgConfigPlugin : Plugin<Project> {
   override fun apply(project: Project) {
     project.run {
       configureGroup()
-      // Only root project needs to configure version, as gitonium will set versions for subprojects automatically.
       configureVersion()
+      configureRepositories()
       configurePublishingRepositories()
-
-      // Only root project needs composite build tasks, as these tasks depend on tasks for subprojects.
       tasks {
         createCompositeBuildTask(project, "cleanAll", "clean", "Deletes the build directory for all projects in the composite build.")
         createCompositeBuildTask(project, "checkAll", "check", "Runs all checks for all projects in the composite build.")
@@ -61,7 +67,6 @@ class MetaborgConfigPlugin : Plugin<Project> {
         createCompositeBuildTask(project, "buildAll", "build", "Assembles and tests all projects in the composite build.")
         createCompositeBuildTask(project, "publishAll", "publish", "Publishes all publications produced by all projects in the composite build.")
       }
-
       extensions.add(extensionName, MetaborgConfigExtension(this))
       subprojects {
         extensions.add(extensionName, MetaborgConfigExtension(this))
@@ -99,6 +104,12 @@ private fun Project.configureGroup() {
 
 private fun Project.configureVersion() {
   pluginManager.apply("org.metaborg.gitonium")
+}
+
+private fun Project.configureRepositories() {
+  repositories {
+    maven(url = "http://home.gohla.nl:8091/artifactory/all/")
+  }
 }
 
 private fun Project.configurePublishingRepositories() {
