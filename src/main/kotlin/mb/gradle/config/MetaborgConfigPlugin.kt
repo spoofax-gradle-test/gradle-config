@@ -1,8 +1,7 @@
 package mb.gradle.config
 
 import org.gradle.api.*
-import org.gradle.api.plugins.JavaApplication
-import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.plugins.*
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.bundling.Jar
@@ -31,16 +30,27 @@ open class MetaborgConfigExtension(private val project: Project) {
   fun configureJavaApplication() {
     project.pluginManager.apply("application")
     project.configureJavaVersion()
-    project.configureJavaPublication("JavaApplication")
     project.afterEvaluate {
-      tasks {
-        "jar"(Jar::class) {
-          manifest {
-            attributes["Main-Class"] = project.the<JavaApplication>().mainClassName
-          }
-          val runtimeClasspath by configurations
-          from(runtimeClasspath.filter { it.exists() }.map { if(it.isDirectory) it else zipTree(it) })
+      // Create additional JAR task that creates an executable JAR.
+      val jarTask = tasks.getByName<Jar>(JavaPlugin.JAR_TASK_NAME)
+      val executableJarTask = tasks.create("executableJar", Jar::class) {
+        manifest {
+          attributes["Main-Class"] = project.the<JavaApplication>().mainClassName
         }
+        archiveClassifier.set("executable")
+        val runtimeClasspath by configurations
+        from(runtimeClasspath.filter { it.exists() }.map { if(it.isDirectory) it else zipTree(it) })
+        with(jarTask)
+      }
+      tasks.getByName(BasePlugin.ASSEMBLE_TASK_NAME).dependsOn(executableJarTask)
+      // Create an artifact for the executable JAR.
+      val executableJarArtifact = artifacts.add("archives", executableJarTask) {
+        classifier = "executable"
+      }
+      // Publish primary artifact from the Java component, and publish executable JAR and ZIP distribution as secondary artifacts.
+      project.configureJavaPublication("JavaApplication") {
+        artifact(executableJarArtifact)
+        artifact(tasks.getByName("distZip"))
       }
     }
   }
@@ -148,12 +158,13 @@ private fun Project.configureJavaVersion() {
   }
 }
 
-private fun Project.configureJavaPublication(name: String) {
+private fun Project.configureJavaPublication(name: String, additionalConfiguration: MavenPublication.() -> Unit = {}) {
   pluginManager.apply("maven-publish")
   configure<PublishingExtension> {
     publications {
       create<MavenPublication>(name) {
         from(project.components["java"])
+        additionalConfiguration()
       }
     }
   }
