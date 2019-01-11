@@ -33,7 +33,7 @@ open class MetaborgConfigExtension(private val project: Project) {
     project.afterEvaluate {
       // Create additional JAR task that creates an executable JAR.
       val jarTask = tasks.getByName<Jar>(JavaPlugin.JAR_TASK_NAME)
-      val executableJarTask = tasks.create("executableJar", Jar::class) {
+      val executableJarTask = tasks.register("executableJar", Jar::class) {
         manifest {
           attributes["Main-Class"] = project.the<JavaApplication>().mainClassName
         }
@@ -60,13 +60,6 @@ open class MetaborgConfigExtension(private val project: Project) {
     project.configureKotlinVersion()
     project.configureKotlinStdLib()
     project.configureJavaPublication("KotlinLibrary")
-  }
-
-  // TODO: kotlin application
-
-  fun configureKotlinGradlePlugin() {
-    project.pluginManager.apply("kotlin-dsl")
-    project.pluginManager.apply("maven-publish")
   }
 }
 
