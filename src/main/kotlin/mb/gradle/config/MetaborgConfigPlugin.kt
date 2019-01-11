@@ -1,9 +1,11 @@
 package mb.gradle.config
 
 import org.gradle.api.*
+import org.gradle.api.plugins.JavaApplication
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.tasks.bundling.Jar
 import org.gradle.kotlin.dsl.*
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.net.URI
@@ -29,8 +31,18 @@ open class MetaborgConfigExtension(private val project: Project) {
   fun configureJavaApplication() {
     project.pluginManager.apply("application")
     project.configureJavaVersion()
-    // TODO: this does not publish a runnable JAR?
     project.configureJavaPublication("JavaApplication")
+    project.afterEvaluate {
+      tasks {
+        "jar"(Jar::class) {
+          manifest {
+            attributes["Main-Class"] = project.the<JavaApplication>().mainClassName
+          }
+          val runtimeClasspath by configurations
+          from(runtimeClasspath.filter { it.exists() }.map { if(it.isDirectory) it else zipTree(it) })
+        }
+      }
+    }
   }
 
   fun configureKotlinLibrary() {
