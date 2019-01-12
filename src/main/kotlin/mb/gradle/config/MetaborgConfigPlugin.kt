@@ -1,7 +1,12 @@
 package mb.gradle.config
 
-import org.gradle.api.*
-import org.gradle.api.plugins.*
+import org.gradle.api.JavaVersion
+import org.gradle.api.Plugin
+import org.gradle.api.Project
+import org.gradle.api.plugins.BasePlugin
+import org.gradle.api.plugins.JavaApplication
+import org.gradle.api.plugins.JavaPlugin
+import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.bundling.Jar
@@ -124,6 +129,7 @@ private fun Project.configureVersion() {
 private fun Project.configureRepositories() {
   repositories {
     maven(url = "http://home.gohla.nl:8091/artifactory/all/")
+    jcenter() // Use JCenter as backup.
   }
 }
 
