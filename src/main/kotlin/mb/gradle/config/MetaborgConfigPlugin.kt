@@ -1,7 +1,12 @@
 package mb.gradle.config
 
-import org.gradle.api.*
-import org.gradle.api.plugins.*
+import org.gradle.api.JavaVersion
+import org.gradle.api.Plugin
+import org.gradle.api.Project
+import org.gradle.api.plugins.BasePlugin
+import org.gradle.api.plugins.JavaApplication
+import org.gradle.api.plugins.JavaPlugin
+import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.bundling.Jar
@@ -33,7 +38,7 @@ open class MetaborgConfigExtension(private val project: Project) {
     project.afterEvaluate {
       // Create additional JAR task that creates an executable JAR.
       val jarTask = tasks.getByName<Jar>(JavaPlugin.JAR_TASK_NAME)
-      val executableJarTask = tasks.create("executableJar", Jar::class) {
+      val executableJarTask = tasks.register("executableJar", Jar::class) {
         manifest {
           attributes["Main-Class"] = project.the<JavaApplication>().mainClassName
         }
@@ -60,13 +65,6 @@ open class MetaborgConfigExtension(private val project: Project) {
     project.configureKotlinVersion()
     project.configureKotlinStdLib()
     project.configureJavaPublication("KotlinLibrary")
-  }
-
-  // TODO: kotlin application
-
-  fun configureKotlinGradlePlugin() {
-    project.pluginManager.apply("kotlin-dsl")
-    project.pluginManager.apply("maven-publish")
   }
 }
 
@@ -131,6 +129,7 @@ private fun Project.configureVersion() {
 private fun Project.configureRepositories() {
   repositories {
     maven(url = "http://home.gohla.nl:8091/artifactory/all/")
+    jcenter() // Use JCenter as backup.
   }
 }
 
