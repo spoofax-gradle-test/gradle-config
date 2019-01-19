@@ -1,11 +1,14 @@
 package mb.gradle.config
 
-import org.eclipse.jgit.api.CloneCommand
-import org.eclipse.jgit.api.Git
+import com.jcraft.jsch.JSchException
+import com.jcraft.jsch.Session
+import org.eclipse.jgit.api.*
+import org.eclipse.jgit.api.errors.GitAPIException
 import org.eclipse.jgit.errors.RepositoryNotFoundException
 import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
+import org.eclipse.jgit.transport.*
 import org.gradle.api.*
 import java.nio.file.Files
 import java.util.*
@@ -30,7 +33,7 @@ class DevenvPlugin : Plugin<Project> {
           try {
             FileRepositoryBuilder().readEnvironment().findGitDir(projectDir).setMustExist(true).build()
           } catch(e: RepositoryNotFoundException) {
-            throw GradleException("Cannot update repositories of devenv; cannot retrieve current branch name because no git repository was found at $projectDir", e)
+            throw GradleException("Cannot update repositories of devenv; cannot retrieve current branch name because no git repository was found at '$projectDir'", e)
           }.use { repo ->
             // Use repository with 'use' to close repository after use, freeing up resources.
             val headRef = repo.exactRef(Constants.HEAD)
@@ -60,28 +63,61 @@ class DevenvPlugin : Plugin<Project> {
           val branch = branchOverride ?: properties.getProperty("$name.branch") ?: rootBranch
           val dirName = dirPathOverride ?: properties.getProperty("$name.dir") ?: name
           val dir = projectDir.resolve(dirName)
+
+          val sshSessionFactory = object : JschConfigSessionFactory() {
+            override fun configure(host: OpenSshConfig.Host, session: Session) {
+              session.userInfo =
+            }
+          }
+
           // Clone or open the repository.
-          val git = if(!dir.exists()) {
+          if(!dir.exists()) {
             val clone = CloneCommand()
             clone.setDirectory(dir)
             clone.setURI(url)
             clone.setBranch(branch)
             clone.setCloneSubmodules(true)
-            clone.call()
+            clone.setTransportConfigCallback(TransportConfigCallback { transport ->
+              if(transport is SshTransport) {
+                transport.sshSessionFactory = sshSessionFactory
+              }
+            })
+            try {
+              clone.call()
+            } catch(e: GitAPIException) {
+              throw GradleException("Cannot update repositories of devenv; cloning '$url' into '$dir' failed unexpectedly", e)
+            }
           } else {
-            Git.open(dir)
+            val repo = try {
+              FileRepositoryBuilder().readEnvironment().findGitDir(dir).setMustExist(true).build()
+            } catch(e: RepositoryNotFoundException) {
+              throw GradleException("Cannot update repositories of devenv; no git repository was found at '$dir'", e)
+            }
+            Git(repo)
+          }.use { git ->
+            val repo = git.repository
+            if(branch != repo.branch) {
+              // Check repository out to the correct branch.
+              val checkout = git.checkout()
+              checkout.setName(branch)
+              checkout.call()
+            }
+            // Pull from remote.
+            val pull = git.pull()
+            pull.setRebase(true)
+            pull.setTransportConfigCallback(TransportConfigCallback { transport ->
+              if(transport is SshTransport) {
+                transport.sshSessionFactory = sshSessionFactory
+              }
+            })
+            try {
+              pull.call()
+            } catch(e: GitAPIException) {
+              throw GradleException("Cannot update repositories of devenv; pulling '$name' failed unexpectedly", e)
+            } catch(e: JSchException) {
+
+            }
           }
-          val repo = git.repository
-          if(branch != repo.branch) {
-            // Check repository out to the correct branch.
-            val checkout = git.checkout()
-            checkout.setName(branch)
-            checkout.call()
-          }
-          // Pull from remote.
-          val pull = git.pull()
-          pull.setRebase(true)
-          pull.call()
         }
       }
     }
