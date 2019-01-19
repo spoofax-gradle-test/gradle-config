@@ -98,6 +98,7 @@ class DevenvPlugin : Plugin<Project> {
         args = mutableListOf("pull", "--recurse-submodules", "--rebase")
         println(commandLine.joinToString(separator = " "))
       }
+      println()
     }
   }
 }
