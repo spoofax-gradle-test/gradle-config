@@ -1,15 +1,12 @@
 package mb.gradle.config
 
-import com.jcraft.jsch.JSchException
-import com.jcraft.jsch.Session
-import org.eclipse.jgit.api.*
-import org.eclipse.jgit.api.errors.GitAPIException
 import org.eclipse.jgit.errors.RepositoryNotFoundException
 import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
-import org.eclipse.jgit.transport.*
-import org.gradle.api.*
+import org.gradle.api.GradleException
+import org.gradle.api.Plugin
+import org.gradle.api.Project
 import java.nio.file.Files
 import java.util.*
 
@@ -56,6 +53,7 @@ class DevenvPlugin : Plugin<Project> {
           }
           properties
         }
+        // Update all Git repositories.
         for((name, includeOverride, urlOverride, branchOverride, dirPathOverride) in extension.repos) {
           val include = includeOverride ?: "true" == properties.getProperty("$name.include")
           if(!include) continue
@@ -63,60 +61,24 @@ class DevenvPlugin : Plugin<Project> {
           val branch = branchOverride ?: properties.getProperty("$name.branch") ?: rootBranch
           val dirName = dirPathOverride ?: properties.getProperty("$name.dir") ?: name
           val dir = projectDir.resolve(dirName)
-
-          val sshSessionFactory = object : JschConfigSessionFactory() {
-            override fun configure(host: OpenSshConfig.Host, session: Session) {
-              session.userInfo =
+          if(!dir.exists()) {
+            project.exec {
+              executable = "git"
+              args = mutableListOf("clone", "--recurse-submodules", "--branch", branch, url, dirName)
+              println(commandLine.joinToString(separator = " "))
             }
           }
-
-          // Clone or open the repository.
-          if(!dir.exists()) {
-            val clone = CloneCommand()
-            clone.setDirectory(dir)
-            clone.setURI(url)
-            clone.setBranch(branch)
-            clone.setCloneSubmodules(true)
-            clone.setTransportConfigCallback(TransportConfigCallback { transport ->
-              if(transport is SshTransport) {
-                transport.sshSessionFactory = sshSessionFactory
-              }
-            })
-            try {
-              clone.call()
-            } catch(e: GitAPIException) {
-              throw GradleException("Cannot update repositories of devenv; cloning '$url' into '$dir' failed unexpectedly", e)
-            }
-          } else {
-            val repo = try {
-              FileRepositoryBuilder().readEnvironment().findGitDir(dir).setMustExist(true).build()
-            } catch(e: RepositoryNotFoundException) {
-              throw GradleException("Cannot update repositories of devenv; no git repository was found at '$dir'", e)
-            }
-            Git(repo)
-          }.use { git ->
-            val repo = git.repository
-            if(branch != repo.branch) {
-              // Check repository out to the correct branch.
-              val checkout = git.checkout()
-              checkout.setName(branch)
-              checkout.call()
-            }
-            // Pull from remote.
-            val pull = git.pull()
-            pull.setRebase(true)
-            pull.setTransportConfigCallback(TransportConfigCallback { transport ->
-              if(transport is SshTransport) {
-                transport.sshSessionFactory = sshSessionFactory
-              }
-            })
-            try {
-              pull.call()
-            } catch(e: GitAPIException) {
-              throw GradleException("Cannot update repositories of devenv; pulling '$name' failed unexpectedly", e)
-            } catch(e: JSchException) {
-
-            }
+          project.exec {
+            executable = "git"
+            workingDir = dir
+            args = mutableListOf("checkout", "-q", branch)
+            println("In $dirName: ${commandLine.joinToString(separator = " ")}")
+          }
+          project.exec {
+            executable = "git"
+            workingDir = dir
+            args = mutableListOf("pull", "--recurse-submodules", "--rebase")
+            println("In $dirName: ${commandLine.joinToString(separator = " ")}")
           }
         }
       }
