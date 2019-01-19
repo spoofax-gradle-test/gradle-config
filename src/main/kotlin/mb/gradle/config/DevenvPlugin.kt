@@ -31,7 +31,7 @@ class DevenvPlugin : Plugin<Project> {
           ?: throw GradleException("Cannot update all repositories of devenv; URL prefix has not been set")
         val rootBranch = gitBranch(projectDir)
         val properties = run {
-          val file = projectDir.resolve("devenv.properties").toPath()
+          val file = projectDir.resolve("repo.properties").toPath()
           properties(file)
         }
         for(repo in extension.repos) {
@@ -70,12 +70,12 @@ class DevenvPlugin : Plugin<Project> {
   }
 
   private fun updateGitRepo(repo: Repo, projectDir: File, urlPrefix: String, rootBranch: String, properties: Properties, project: Project) {
-    val (name, includeOverride, urlOverride, branchOverride, dirPathOverride) = repo
-    val include = includeOverride ?: "true" == properties.getProperty("$name.include")
-    if(!include) return
-    val url = urlOverride ?: properties.getProperty("$name.url") ?: "$urlPrefix/$name.git"
-    val branch = branchOverride ?: properties.getProperty("$name.branch") ?: rootBranch
-    val dirName = dirPathOverride ?: properties.getProperty("$name.dir") ?: name
+    val (name, defaultUpdate, defaultUrl, defaultBranch, defaultDirPath) = repo
+    val update = "true" == properties.getProperty(name) ?: defaultUpdate ?: false
+    if(!update) return
+    val url = properties.getProperty("$name.url") ?: defaultUrl ?: "$urlPrefix/$name.git"
+    val branch = properties.getProperty("$name.branch") ?: defaultBranch ?: rootBranch
+    val dirName = properties.getProperty("$name.dir") ?: defaultDirPath ?: name
     val dir = projectDir.resolve(dirName)
     if(!dir.exists()) {
       println("Cloning repository $dirName:")
@@ -104,7 +104,7 @@ class DevenvPlugin : Plugin<Project> {
 }
 
 
-data class Repo(val name: String, val includeOverride: Boolean?, val urlOverride: String?, val branchOverride: String?, val dirPathOverride: String?)
+data class Repo(val name: String, val defaultUpdate: Boolean?, val defaultUrl: String?, val defaultBranch: String?, val defaultDirPath: String?)
 
 @Suppress("unused")
 open class DevenvExtension(private val project: Project) {
@@ -113,8 +113,8 @@ open class DevenvExtension(private val project: Project) {
   var repoUrlPrefix: String? = null
 
   @JvmOverloads
-  fun registerRepo(name: String, include: Boolean? = null, url: String? = null, branch: String? = null, dirPath: String? = null) {
-    repos.add(Repo(name, include, url, branch, dirPath))
+  fun registerRepo(name: String, defaultUpdate: Boolean? = null, defaultUrl: String? = null, defaultBranch: String? = null, defaultDirPath: String? = null) {
+    repos.add(Repo(name, defaultUpdate, defaultUrl, defaultBranch, defaultDirPath))
   }
 
   fun registerCompositeBuildTask(name: String, description: String) {
