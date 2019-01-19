@@ -81,7 +81,7 @@ class DevenvPlugin : Plugin<Project> {
       println("Cloning repository $dirName:")
       project.exec {
         executable = "git"
-        args = mutableListOf("clone", "--recurse-submodules", "--branch", branch, url, dirName)
+        args = mutableListOf("clone", "--quiet", "--recurse-submodules", "--branch", branch, url, dirName)
         println(commandLine.joinToString(separator = " "))
       }
     } else {
@@ -89,17 +89,17 @@ class DevenvPlugin : Plugin<Project> {
       project.exec {
         executable = "git"
         workingDir = dir
-        args = mutableListOf("checkout", "-q", branch)
+        args = mutableListOf("checkout", "--quiet", branch)
         println(commandLine.joinToString(separator = " "))
       }
       project.exec {
         executable = "git"
         workingDir = dir
-        args = mutableListOf("pull", "--recurse-submodules", "--rebase")
+        args = mutableListOf("pull", "--quiet", "--recurse-submodules", "--rebase")
         println(commandLine.joinToString(separator = " "))
       }
-      println()
     }
+    println()
   }
 }
 
