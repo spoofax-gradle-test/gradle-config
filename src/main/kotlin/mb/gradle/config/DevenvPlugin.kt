@@ -62,23 +62,26 @@ class DevenvPlugin : Plugin<Project> {
           val dirName = dirPathOverride ?: properties.getProperty("$name.dir") ?: name
           val dir = projectDir.resolve(dirName)
           if(!dir.exists()) {
+            println("Cloning repository $dirName")
             project.exec {
               executable = "git"
               args = mutableListOf("clone", "--recurse-submodules", "--branch", branch, url, dirName)
-              println(commandLine.joinToString(separator = " "))
+              println("  ${commandLine.joinToString(separator = " ")}")
             }
-          }
-          project.exec {
-            executable = "git"
-            workingDir = dir
-            args = mutableListOf("checkout", "-q", branch)
-            println("In $dirName: ${commandLine.joinToString(separator = " ")}")
-          }
-          project.exec {
-            executable = "git"
-            workingDir = dir
-            args = mutableListOf("pull", "--recurse-submodules", "--rebase")
-            println("In $dirName: ${commandLine.joinToString(separator = " ")}")
+          } else {
+            println("Updating repository $dirName")
+            project.exec {
+              executable = "git"
+              workingDir = dir
+              args = mutableListOf("checkout", "-q", branch)
+              println("  ${commandLine.joinToString(separator = " ")}")
+            }
+            project.exec {
+              executable = "git"
+              workingDir = dir
+              args = mutableListOf("pull", "--recurse-submodules", "--rebase")
+              println("  ${commandLine.joinToString(separator = " ")}")
+            }
           }
         }
       }
